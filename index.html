@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <meta http-equiv="Content-Type" content="text/html" charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximumscale=1.0 , shrink-to-fit=no, user-scalable=no" />
+    <meta name="robots" content="index,follow" />
+    <meta name="description" content="Mapa interactivo para visualizar las fuentes y manantiales de agua en España" />
+    <meta name="keywords" content="mapa, fuentes, agua, potable, manantiales, rutas, MTB, BTT, Madrid, Prug, sendas verdes, bici, bicicleta, montaña, ciclismo, tracks" />
+    <meta name="author" content="Nano Flojo" />
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="application-name" content="Fuentes">
+<meta name="apple-mobile-web-app-title" content="Fuentes">
+<meta name="theme-color" content="#969696">
+<meta name="msapplication-navbutton-color" content="#969696">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="msapplication-starturl" content="/index.html">
+<title>Mapa Fuentes</title>
+	
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="Fuente192.png">
+<link rel="apple-touch-icon" href="Fuente192.png">
+	
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ==" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js" integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew==" crossorigin=""></script>
+
+    <link href='Leaflet.fullscreen/dist/leaflet.fullscreen.css' rel='stylesheet' />
+    <script src='Leaflet.fullscreen/dist/Leaflet.fullscreen.min.js'></script>
+
+    <link rel="stylesheet" href="leaflet-locatecontrol/dist/L.Control.Locate.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+    <script src="leaflet-locatecontrol/dist/L.Control.Locate.min.js" charset="utf-8"></script>
+
+    <link rel="stylesheet" href="leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <script src="leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+    <script src="https://unpkg.com/togeojson@0.16.0"></script>
+    <script src="Leaflet.Filelayer/src/leaflet.filelayer.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+
+    <link rel="stylesheet" href="Leaflet.markercluster/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="Leaflet.markercluster/dist/MarkerCluster.Default.css" />
+    <script src="Leaflet.markercluster/dist/leaflet.markercluster-src.js"></script>
+
+    <script type="text/javascript" src="data/FuentesData.js"></script>
+
+    <style type="text/css">
+        html,
+        body {
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+
+        #map {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .icon {
+            max-width: 80%;
+            max-height: 80%;
+            margin: 2px;
+        }
+
+        iframe {
+            width: auto;
+            height: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <script>
+         var map = new L.Map('map', {
+            center: new L.LatLng(40.9000000, -3.9675000000),
+            zoom: 7,
+            fullscreenControl: true,
+        });
+
+        var pnoa = new L.tileLayer(
+            "https://www.ign.es/wmts/pnoa-ma?request=getTile&layer=OI.OrthoimageCoverage&TileMatrixSet=GoogleMapsCompatible&TileMatrix={z}&TileCol={x}&TileRow={y}&format=image/jpeg", {
+                id: "ignpnoa",
+                zIndex: 1,
+                maxZoom: 20,
+                updateWhenIdle: !0,
+                keepBuffer: 4,
+                attribution: 'Ortofoto PNOA CC-BY 4.0 <a href="http://www.scne.es" target="_blank"><b>scne.es</b></a>'
+            }
+        );
+
+        var IGNBase = L.tileLayer.wms('http://www.ign.es/wms-inspire/ign-base', {
+            layers: 'IGNBaseOrto',
+            format: 'image/png',
+            transparent: true,
+            continuousWorld: true,
+            attribution: '© <a href="http://www.ign.es/ign/main/index.do" target="_blank">Instituto Geográfico Nacional de España</a>'
+        });
+
+        var Spain_IGNBase = L.tileLayer.wms('http://www.ign.es/wms-inspire/ign-base', {
+            layers: 'IGNBaseTodo',
+            format: 'image/png',
+            transparent: true,
+            continuousWorld: true,
+            attribution: '© CC-BY 4.0 <a href="http://www.scne.es" target="_blank"><b>scne.es</b></a>'
+        });
+
+        var osm = new L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+            maxZoom: 20,
+            attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+        });
+
+        var OpenCycleMap =
+            L.tileLayer('https://tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey=081ff7d83c0549c7a758fdd4df478f0f', {
+                transparent: false,
+                continuousWorld: true,
+                attribution: 'Map data &copy; <a target="_blank" href="https://www.opencyclemap.org/">OpenCycleMap</a>',
+                maxZoom: 20
+            });
+
+        var mTopo = new L.tileLayer(
+            "https://www.ign.es/wmts/mapa-raster?request=getTile&layer=MTN&TileMatrixSet=GoogleMapsCompatible&TileMatrix={z}&TileCol={x}&TileRow={y}&format=image/jpeg", {
+                id: "igntopo",
+                zIndex: 1,
+                maxZoom: 20,
+                //opacity:0.60,
+                updateWhenIdle: !0,
+                keepBuffer: 4,
+                attribution: '© <a href="http://www.ign.es/ign/main/index.do" target="_blank">Instituto Geográfico Nacional de España</a>'
+            }
+        );
+
+		var maptiles = new L.tileLayer('mapTiles/MapaCentro/{z}/{x}/{y}.png', {
+            maxZoom: 15,
+            attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+        });
+
+        var PnoaNomen = L.layerGroup([pnoa, IGNBase]).addTo(map);
+
+        var baseMaps = {
+			'Mapa Offline': maptiles,
+            'Satelite': PnoaNomen,
+            'Raster': mTopo,
+            'Open Street Map': osm,
+            'Open Cycle Map': OpenCycleMap,
+            'Callejero': Spain_IGNBase,
+        };
+
+
+        L.control.layers(baseMaps, null, {
+            position: 'topright',
+            collapsed: true
+        }).addTo(map);
+
+        var style = {
+            color: "#ff7800",
+            fillColor: "#ff7800",
+            opacity: 1.0,
+            fillOpacity: 0.8,
+            weight: 4,
+            clickable: false
+        };
+        // icon style
+
+        var myIcon = L.icon({
+            iconUrl: 'images/Red_flag_OK_24.png',
+            //iconAnchor: [16, 37],
+            iconAnchor: [9, 30],
+            popupAnchor: [0, -28]
+        });
+
+        L.Control.FileLayerLoad.LABEL = '<img class="icon" src="images/folder.svg" alt="file icon"/>';
+
+        var geoJsonOptions = {
+            onEachFeature: function(feature, layer) {
+                layer.bindPopup(feature.properties.name);
+            },
+            style: style,
+            pointToLayer: function(data, latlng) {
+                return L.marker(latlng, {
+                    icon: myIcon
+                });
+            }
+        }
+        L.Control.fileLayerLoad({
+            layerOptions: geoJsonOptions,
+        }).addTo(map);
+
+        L.control.scale({
+            imperial: false
+        }).addTo(map);
+
+        var geocoder = L.Control.geocoder({
+            position: 'topleft'
+        }).addTo(map);
+
+        L.control.locate({
+            strings: {
+                title: "Situate en tu localización actual",
+            },
+        }).addTo(map);
+		
+		/*
+        var geojsonMarkerOptions = {
+		    radius: 6,
+            fillColor: "#009fbb",
+            color: "#009fbb",
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.4
+        };
+		*/
+		 var smallIcon = new L.Icon({
+     iconSize: [27, 27],
+     iconAnchor: [13, 27],
+     popupAnchor:  [1, -24],
+     iconUrl: 'images/gotadeagua4_24.png'
+ });
+
+		var markers = L.markerClusterGroup();
+		var geoJsonLayer = L.geoJson(fuentes, {
+			onEachFeature: function (feature, layer) {
+				layer.bindPopup(feature.properties.name);
+			},
+			      pointToLayer: function (feature, latlng) {
+            return L.marker(latlng, {icon: smallIcon}/*geojsonMarkerOptions*/);
+      }
+		});
+		markers.addLayer(geoJsonLayer);
+		map.addLayer(markers);
+		map.fitBounds(markers.getBounds());
+    </script>
+</body>
+
+</html>
